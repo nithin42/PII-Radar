@@ -52,16 +52,18 @@ _SSN_PATTERN = re.compile(
 )
 
 _CREDIT_CARD_RAW_PATTERN = re.compile(
-    r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b"
+    r"\b(?:"
+    r"4[0-9]{3}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{1,4}"
+    r"|5[1-5][0-9]{2}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}"
+    r"|3[47][0-9]{2}[-\s]?[0-9]{6}[-\s]?[0-9]{5}"
+    r"|6(?:011|5[0-9]{2})[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}"
+    r"|[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}"
+    r")\b"
 )
 
-_IPV4_PATTERN = re.compile(
-    r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b"
-)
+_IPV4_PATTERN = re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b")
 
-_IPV6_PATTERN = re.compile(
-    r"\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b"
-)
+_IPV6_PATTERN = re.compile(r"\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b")
 
 _DOB_DATE_PATTERN = re.compile(
     r"\b(?:0?[1-9]|1[0-2])[/\-.](?:0?[1-9]|[12]\d|3[01])[/\-.](?:19|20)\d{2}\b"
@@ -78,11 +80,24 @@ PATTERNS = {
 }
 
 _DOB_COLUMN_KEYWORDS = {
-    "dob", "birth", "birthday", "date_of_birth", "born", "birthdate", "bday"
+    "dob",
+    "birth",
+    "birthday",
+    "date_of_birth",
+    "born",
+    "birthdate",
+    "bday",
 }
 
 _EMAIL_COLUMN_KEYWORDS = {"email", "e_mail", "mail", "email_address"}
-_PHONE_COLUMN_KEYWORDS = {"phone", "telephone", "mobile", "cell", "contact_no", "phone_number"}
+_PHONE_COLUMN_KEYWORDS = {
+    "phone",
+    "telephone",
+    "mobile",
+    "cell",
+    "contact_no",
+    "phone_number",
+}
 _SSN_COLUMN_KEYWORDS = {"ssn", "social_security", "tax_id", "national_id"}
 _CARD_COLUMN_KEYWORDS = {"card", "credit_card", "cc_num", "pan", "card_number"}
 
@@ -90,6 +105,7 @@ _CARD_COLUMN_KEYWORDS = {"card", "credit_card", "cc_num", "pan", "card_number"}
 # ---------------------------------------------------------------------------
 # Validation helpers
 # ---------------------------------------------------------------------------
+
 
 def is_luhn_valid(card_number: str) -> bool:
     """
@@ -133,6 +149,7 @@ def is_valid_ipv4(ip_str: str) -> bool:
 # Main detection function
 # ---------------------------------------------------------------------------
 
+
 def detect(value: str, column: str, row_index: int) -> List[PIIMatch]:
     """
     Scan a single string value for PII patterns with heuristic validation.
@@ -154,7 +171,9 @@ def detect(value: str, column: str, row_index: int) -> List[PIIMatch]:
 
     # 1. Email Detection
     if _EMAIL_PATTERN.search(val_clean):
-        confidence = 0.99 if any(k in col_lower for k in _EMAIL_COLUMN_KEYWORDS) else 0.98
+        confidence = (
+            0.99 if any(k in col_lower for k in _EMAIL_COLUMN_KEYWORDS) else 0.98
+        )
         matches.append(
             PIIMatch(
                 pii_type="EMAIL",
@@ -183,7 +202,9 @@ def detect(value: str, column: str, row_index: int) -> List[PIIMatch]:
     if cc_match:
         raw_digits = re.sub(r"\D", "", cc_match.group(0))
         if is_luhn_valid(raw_digits):
-            confidence = 0.99 if any(k in col_lower for k in _CARD_COLUMN_KEYWORDS) else 0.95
+            confidence = (
+                0.99 if any(k in col_lower for k in _CARD_COLUMN_KEYWORDS) else 0.95
+            )
             matches.append(
                 PIIMatch(
                     pii_type="CREDIT_CARD",
@@ -196,7 +217,9 @@ def detect(value: str, column: str, row_index: int) -> List[PIIMatch]:
 
     # 4. Phone Detection
     if _PHONE_PATTERN.search(val_clean):
-        confidence = 0.95 if any(k in col_lower for k in _PHONE_COLUMN_KEYWORDS) else 0.85
+        confidence = (
+            0.95 if any(k in col_lower for k in _PHONE_COLUMN_KEYWORDS) else 0.85
+        )
         matches.append(
             PIIMatch(
                 pii_type="PHONE",
@@ -243,6 +266,98 @@ def detect(value: str, column: str, row_index: int) -> List[PIIMatch]:
                     row_index=row_index,
                 )
             )
+
+    return matches
+
+
+def detect_pii_in_text(text: str) -> List[PIIMatch]:
+    """
+    Scan free-form text or agent response strings for all occurrences of PII.
+
+    Args:
+        text: Arbitrary string to scan.
+
+    Returns:
+        List of PIIMatch objects for all identified PII entities.
+    """
+    if not isinstance(text, str) or not text.strip():
+        return []
+
+    matches: List[PIIMatch] = []
+
+    # 1. Email Detection
+    for m in _EMAIL_PATTERN.finditer(text):
+        matches.append(
+            PIIMatch(
+                pii_type="EMAIL",
+                value=m.group(0),
+                confidence=0.99,
+                column="text",
+                row_index=0,
+            )
+        )
+
+    # 2. SSN Detection
+    for m in _SSN_PATTERN.finditer(text):
+        matches.append(
+            PIIMatch(
+                pii_type="SSN",
+                value=m.group(0),
+                confidence=0.99,
+                column="text",
+                row_index=0,
+            )
+        )
+
+    # 3. Credit Card Detection with Luhn validation
+    for m in _CREDIT_CARD_RAW_PATTERN.finditer(text):
+        raw_digits = re.sub(r"\D", "", m.group(0))
+        if is_luhn_valid(raw_digits):
+            matches.append(
+                PIIMatch(
+                    pii_type="CREDIT_CARD",
+                    value=m.group(0),
+                    confidence=0.99,
+                    column="text",
+                    row_index=0,
+                )
+            )
+
+    # 4. Phone Detection
+    for m in _PHONE_PATTERN.finditer(text):
+        matches.append(
+            PIIMatch(
+                pii_type="PHONE",
+                value=m.group(0),
+                confidence=0.95,
+                column="text",
+                row_index=0,
+            )
+        )
+
+    # 5. IP Address Detection
+    for m in _IPV4_PATTERN.finditer(text):
+        if is_valid_ipv4(m.group(0)):
+            matches.append(
+                PIIMatch(
+                    pii_type="IP_ADDRESS",
+                    value=m.group(0),
+                    confidence=0.92,
+                    column="text",
+                    row_index=0,
+                )
+            )
+
+    for m in _IPV6_PATTERN.finditer(text):
+        matches.append(
+            PIIMatch(
+                pii_type="IP_ADDRESS",
+                value=m.group(0),
+                confidence=0.92,
+                column="text",
+                row_index=0,
+            )
+        )
 
     return matches
 

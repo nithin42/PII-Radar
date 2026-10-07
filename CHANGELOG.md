@@ -4,6 +4,15 @@ All notable changes to **pii-radar** are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] — 2026-10-07
+
+### Added
+- **Universal AgentGuard Engine**: Added framework-agnostic `AgentGuard` (`src/pii_radar/guard.py`) for AI agents, LLM output filtering, and automated evaluation pipelines
+- **Enterprise Secret & API Key Detection**: Added `detect_secrets_in_text` (`src/pii_radar/secrets.py`) covering AWS (IAM/STS), OpenAI (legacy & project keys), Anthropic, GitHub PATs, Stripe, Slack, Google Cloud, JWTs, and PEM private key headers
+- **Cryptographic PII Enhancements**: Added `detect_pii_in_text` (`src/pii_radar/detectors.py`) for arbitrary text streams and enhanced credit card regex to support formatted sequences with Luhn Mod-10 verification
+- **Universal Evaluation Contract**: Added `EvaluationResult.to_dict()` exporting standardized schemas (`result: bool`, `passed: bool`, `score: float`, `reason: str`, `violations: list`) compatible with external evaluation frameworks
+- **Test Suites**: Added `test_secrets.py`, `test_guard.py` (concurrency & latency), and `test_eval_contract.py` (79 total unit tests)
+
 ## [0.5.0] — 2026-08-05
 
 ### Added
