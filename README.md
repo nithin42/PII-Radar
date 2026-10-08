@@ -5,7 +5,7 @@
 **Scan any CSV, JSON, or Parquet file for Personally Identifiable Information — in seconds.**
 
 [![CI](https://github.com/nithin42/pii-radar/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nithin42/pii-radar/actions/workflows/ci.yml)
-[![PyPI version](https://badge.fury.io/py/pii-radar.svg?v=0.5.0)](https://pypi.org/project/pii-radar/)
+[![PyPI version](https://badge.fury.io/py/pii-radar.svg?v=0.6.0)](https://pypi.org/project/pii-radar/)
 [![Python](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12-blue)](https://pypi.org/project/pii-radar/)
 [![Discussions](https://img.shields.io/github/discussions/nithin42/pii-radar)](https://github.com/nithin42/pii-radar/discussions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
