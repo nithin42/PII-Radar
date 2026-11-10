@@ -101,10 +101,14 @@ def scan(
 
     target_path = Path(target)
 
-    if target_path.is_dir():
-        results = scan_directory(target_path, min_confidence=min_confidence, sample_rows=sample)
-    else:
-        results = [scan_file(target_path, min_confidence=min_confidence, sample_rows=sample)]
+    try:
+        if target_path.is_dir():
+            results = scan_directory(target_path, min_confidence=min_confidence, sample_rows=sample)
+        else:
+            results = [scan_file(target_path, min_confidence=min_confidence, sample_rows=sample)]
+    except (ValueError, FileNotFoundError) as exc:
+        Console().print(f"[bold red]Error:[/bold red] {exc}")
+        raise SystemExit(2) from exc
 
     # ── Output ──────────────────────────────────────────────────────────────
     print_summary(results)
