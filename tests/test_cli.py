@@ -74,3 +74,13 @@ def test_sample_rows_option(sample_csv: Path):
     runner = CliRunner()
     result = runner.invoke(cli, ["scan", str(sample_csv), "--sample", "1", "--output", "json"])
     assert result.exit_code == 0
+
+
+def test_scan_unsupported_file_type_reports_clean_error(tmp_path: Path):
+    target = tmp_path / "notes.txt"
+    target.write_text("just some text\n", encoding="utf-8")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["scan", str(target)])
+    assert not isinstance(result.exception, ValueError)
+    assert result.exit_code == 2
+    assert "Unsupported file type" in result.output
